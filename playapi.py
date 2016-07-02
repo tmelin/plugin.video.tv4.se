@@ -19,6 +19,8 @@
 #  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 #  http://www.gnu.org/copyleft/gpl.html
 #
+from datetime import datetime
+import time
 import re
 import xml.etree.ElementTree as ET
 from urlparse import urlparse
@@ -101,17 +103,42 @@ class tv4PlayApi():
             raise tv4PlayApiException(msg)
         if xml.find('playbackStatus').text == 'NOT_STARTED':
             msg = 'PLAYBACKSTATUS'
+            broadcast_time = xml.find('liveBroadcastTime').text
+            format = '%Y-%m-%dT%H:%M:%S+02:00'
+            #Workarond for strange TypeError
+            #These are equivalent according to https://docs.python.org/2/library/datetime.html
+            try:
+                broadcast_time = datetime.strptime(broadcast_time, format).strftime('%c')
+            except TypeError:
+                broadcast_time = datetime(*(time.strptime(broadcast_time, format)[0:6])).strftime('%c')
+
+            self.live_broadcast_time = broadcast_time
             raise tv4PlayApiException(msg)
 
-        url =  tv4PlayApi.VIDEO_BASEURL.format(vid) + '?' + urllib.urlencode({'protocol': 'hls'})
+        if xml.find('live').text == 'true':
+            self.live_show = True
+            video_format = 'livehls'
+        else:
+            self.live_show = False
+            video_format = 'mp4'
+
+        url = tv4PlayApi.VIDEO_BASEURL.format(vid) + '?' + urllib.urlencode({'protocol': 'hls'})
         data = self.http_request(url)
         xml = ET.XML(data)
         ss = xml.find('items')
         sa = list(ss.iter('item'))
         for i in sa:
-            if i.find('mediaFormat').text == 'mp4':
+            if i.find('mediaFormat').text == video_format:
+                xbmc.log('mediaformat: {0}'.format(i.find('mediaFormat').text))
                 url = i.find('url').text
                 return url
+
+        msg = "NO_URL_FOUND" 
+        raise tv4PlayApiException(msg)
+
+    def get_start_time(self):
+        return self.live_broadcast_time
+
 
 class tv4PlayApiException(Exception):
     pass

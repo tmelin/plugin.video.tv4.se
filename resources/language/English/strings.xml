@@ -6,5 +6,6 @@
     <string id="30005">Contents can not be viewed in your region</string>
     <string id="30006">Could not find contents</string>
     <string id="30007">Cannot show DRM protected material</string>
-    <string id="30008">Not available for viewing yet</string>
+    <string id="30008">Program not available for viewing yet, broadcast at:</string>
+    <string id="30009">Could not find a valid URL to play</string>
 </strings>

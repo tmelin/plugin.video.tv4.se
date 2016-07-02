@@ -100,7 +100,9 @@ class TV4PlayAddon():
                 elif 'DRM_PROTECTED' in code:
                     url = self._build_url({'show_err': 30007})
                 elif 'PLAYBACKSTATUS' in code:
-                    url = self._build_url({'show_err': 30008})
+                    url = self._build_url({'show_err': 30008, 'extra_info': self.api.get_start_time()})
+                elif 'NO_URL_FOUND' in code:
+                    url = self._build_url({'show_err': 30009})
                 else:
                     url = self._build_url({'show_err': '{0}'.format(code)})
 
@@ -112,12 +114,12 @@ class TV4PlayAddon():
         xbmcplugin.addDirectoryItems(HANDLE, items)
         xbmcplugin.endOfDirectory(HANDLE)
 
-    def display_error(self, message='N/A'):
+    def display_error(self, message='N/A', extra_info=''):
         heading = ADDON.getLocalizedString(30001)
         line1 = ADDON.getLocalizedString(30003)
         if str(message).isdigit():
            message = ADDON.getLocalizedString(int(message))
-        xbmcgui.Dialog().ok(heading, line1, unicode(message))
+        xbmcgui.Dialog().ok(heading, line1, unicode(message), extra_info)
 
 if __name__ == '__main__':
     ADDON = xbmcaddon.Addon()
@@ -135,7 +137,10 @@ if __name__ == '__main__':
     tv4playAddon = TV4PlayAddon()
     try:
         if 'show_err' in PARAMS:
-            tv4playAddon.display_error(PARAMS['show_err'][0])
+            if 'extra_info' in PARAMS:
+                tv4playAddon.display_error(PARAMS['show_err'][0], PARAMS['extra_info'][0])
+            else:
+                tv4playAddon.display_error(PARAMS['show_err'][0])
         elif 'episodes_nid' in PARAMS:
             tv4playAddon.list_episodes(PARAMS['episodes_nid'][0])
         else:

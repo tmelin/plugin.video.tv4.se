@@ -6,6 +6,6 @@
     <string id="30005">Kan inte ses i det land du befinner dig i</string>
     <string id="30006">Kunde inte hitta programmet</string>
     <string id="30007">Kan inte visa DRM skyddat material</string>
-    <string id="30008">Material inte ännu publicerat</string>
-
+    <string id="30008">Programmet är ännu inte publicerat, sänds:</string>
+    <string id="30009">Hittade ingen länk att spela upp</string>
 </strings>
