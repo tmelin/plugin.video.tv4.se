@@ -77,7 +77,7 @@ class TV4PlayAddon():
 
         for episode in episodes:
             fanart = episode['image']
-            
+
             info_labels = {
                 'title': episode['title'],
                 'plot' : episode['description'],
@@ -88,24 +88,8 @@ class TV4PlayAddon():
             item = xbmcgui.ListItem(episode['title'], iconImage=fanart)
             item.setInfo('video', info_labels)
             item.setProperty('Fanart_Image', fanart)
-            try:
-                url = self.api.get_videourl(episode['id'])
-                item.setProperty('IsPlayable', 'true')
-            except tv4PlayApiException as code:
-                item.setProperty('IsPlayable', 'false')
-                if 'SESSION_NOT_AUTHENTICATED' in code:
-                    url = self._build_url({'show_err': 30004})
-                elif 'ASSET_PLAYBACK_INVALID_GEO_LOCATION' in code:
-                    url = self._build_url({'show_err': 30005})
-                elif 'DRM_PROTECTED' in code:
-                    url = self._build_url({'show_err': 30007})
-                elif 'PLAYBACKSTATUS' in code:
-                    url = self._build_url({'show_err': 30008, 'extra_info': self.api.get_start_time()})
-                elif 'NO_URL_FOUND' in code:
-                    url = self._build_url({'show_err': 30009})
-                else:
-                    url = self._build_url({'show_err': '{0}'.format(code)})
-
+            url = self._build_url({'play_video': episode['id']})
+            item.setProperty('IsPlayable', 'true')
             items.append((url, item))
 
         xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_EPISODE)
@@ -120,6 +104,33 @@ class TV4PlayAddon():
         if str(message).isdigit():
            message = ADDON.getLocalizedString(int(message))
         xbmcgui.Dialog().ok(heading, line1, unicode(message), extra_info)
+
+    def play_video(self, url):
+        try:
+            videodata = self.api.get_videodata(url)
+            player = xbmc.Player()
+            item = xbmcgui.ListItem('Video', path=videodata['videourl'])
+            xbmcplugin.setResolvedUrl(HANDLE, True, item)
+
+            if videodata['subtitleurl'] != "":
+                xbmc.log('setting_subtitles: {0}'.format(videodata['subtitleurl']))
+                player.setSubtitles(videodata['subtitleurl'])
+
+                xbmc.log('subtitle-stream: {0}'.format(player.getAvailableSubtitleStreams()))
+
+        except tv4PlayApiException as code:
+            if 'SESSION_NOT_AUTHENTICATED' in code:
+                self.display_error(30004)
+            elif 'ASSET_PLAYBACK_INVALID_GEO_LOCATION' in code:
+                self.display_error(30005)
+            elif 'DRM_PROTECTED' in code:
+                self.display_error(30007)
+            elif 'PLAYBACKSTATUS' in code:
+                self.display_error(30008, self.api.get_start_time())
+            elif 'NO_URL_FOUND' in code:
+                self.display_error(30009)
+            else:
+                self.display_error('{0}'.format(code))
 
 if __name__ == '__main__':
     ADDON = xbmcaddon.Addon()
@@ -136,14 +147,12 @@ if __name__ == '__main__':
 
     tv4playAddon = TV4PlayAddon()
     try:
-        if 'show_err' in PARAMS:
-            if 'extra_info' in PARAMS:
-                tv4playAddon.display_error(PARAMS['show_err'][0], PARAMS['extra_info'][0])
-            else:
-                tv4playAddon.display_error(PARAMS['show_err'][0])
+        if 'play_video' in PARAMS:
+            tv4playAddon.play_video(PARAMS['play_video'][0])
         elif 'episodes_nid' in PARAMS:
             tv4playAddon.list_episodes(PARAMS['episodes_nid'][0])
         else:
             tv4playAddon.list_programs()
+
     except Exception as ex:
         tv4playAddon.display_error(str(ex))

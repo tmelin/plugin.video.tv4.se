@@ -84,7 +84,7 @@ class tv4PlayApi():
 
         return data['results']
 
-    def get_videourl(self, vid):
+    def get_videodata(self, vid):
         url = tv4PlayApi.VIDEO_BASEURL.format(vid)
         try:
             data = self.http_request(url)
@@ -116,29 +116,40 @@ class tv4PlayApi():
             raise tv4PlayApiException(msg)
 
         if xml.find('live').text == 'true':
-            self.live_show = True
-            video_format = 'livehls'
+            self.video_format = 'livehls'
         else:
-            self.live_show = False
-            video_format = 'mp4'
+            self.video_format = 'mp4'
+
+        urls = self.get_videourls(vid)
+        return urls
+
+    def get_videourls(self, vid):
 
         url = tv4PlayApi.VIDEO_BASEURL.format(vid) + '?' + urllib.urlencode({'protocol': 'hls'})
         data = self.http_request(url)
+
+        videourl = self.get_media_format_url(data, self.video_format)
+        if videourl == '':
+            msg = "NO_URL_FOUND"
+            raise tv4PlayApiException(msg)
+
+        subtitleurl = self.get_media_format_url(data, 'smi')
+
+        return {'videourl' : videourl, 'subtitleurl' : subtitleurl}
+
+    def get_media_format_url(self, data, field):
         xml = ET.XML(data)
         ss = xml.find('items')
         sa = list(ss.iter('item'))
         for i in sa:
-            if i.find('mediaFormat').text == video_format:
-                xbmc.log('mediaformat: {0}'.format(i.find('mediaFormat').text))
+            if i.find('mediaFormat').text == field:
                 url = i.find('url').text
                 return url
 
-        msg = "NO_URL_FOUND" 
-        raise tv4PlayApiException(msg)
+        return ''
 
     def get_start_time(self):
         return self.live_broadcast_time
-
 
 class tv4PlayApiException(Exception):
     pass
