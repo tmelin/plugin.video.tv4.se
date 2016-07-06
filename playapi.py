@@ -122,7 +122,6 @@ class tv4PlayApi():
         return urls
 
     def get_videourls(self, vid):
-
         url = tv4PlayApi.VIDEO_BASEURL.format(vid) + '?' + urllib.urlencode({'protocol': 'hls'})
         data = self.http_request(url)
 

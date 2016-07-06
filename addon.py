@@ -70,7 +70,6 @@ class TV4PlayAddon():
         elif type == 'most_viewed':
             programs = self.api.get_most_viewed()
         if not programs:
-            xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
             self.display_error(30000)
             return
 
@@ -106,6 +105,10 @@ class TV4PlayAddon():
         return self.list_episodes(episodes)
 
     def list_episodes(self, episodes):
+        if not episodes:
+            self.display_error(30000)
+            return
+
         items = []
         for episode in episodes:
             fanart = episode['image']
@@ -199,6 +202,9 @@ if __name__ == '__main__':
             tv4playAddon.search_programs()
         else:
             tv4playAddon.show_menu()
+
+    except KeyError as ex:
+        tv4playAddon.display_error(30002, str(ex))
 
     except Exception as ex:
         tv4playAddon.display_error(str(ex))

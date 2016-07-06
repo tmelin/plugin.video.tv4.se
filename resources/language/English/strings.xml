@@ -2,6 +2,7 @@
 <strings>
     <string id="30000">Could not find any shows</string>
     <string id="30001">Error message</string>
+    <string id="30002">Could not find expected data from server</string>
     <string id="30004">Premium account needed to access video</string>
     <string id="30005">Contents can not be viewed in your region</string>
     <string id="30006">Could not find contents</string>
