@@ -42,15 +42,39 @@ class TV4PlayAddon():
     def _build_url(self, query):
         return PATH + '?' + urllib.urlencode(query)
 
-    def list_programs(self):
+    def show_menu(self):
+        items = []
+        item = xbmcgui.ListItem(ADDON.getLocalizedString(30010), iconImage=ICON)
+        item.setProperty('Fanart_Image', FANART)
+        url = self._build_url({'list_programs': 'most_viewed'})
+        items.append((url, item, True))
+
+        item = xbmcgui.ListItem(ADDON.getLocalizedString(30011), iconImage=ICON)
+        item.setProperty('Fanart_Image', FANART)
+        url = self._build_url({'list_programs': 'all'})
+        items.append((url, item, True))
+
+        item = xbmcgui.ListItem(ADDON.getLocalizedString(30012), iconImage=ICON)
+        item.setProperty('Fanart_Image', FANART)
+        url = self._build_url({'search_program': 'true'})
+        items.append((url, item, True))
+
+        xbmcplugin.addDirectoryItems(HANDLE, items)
+        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
+        xbmcplugin.endOfDirectory(HANDLE)
+
+    def list_programs(self, type):
         xbmcplugin.setContent(HANDLE, 'movies')
-        programs = self.api.get_programs()
+        if type == 'all':
+            programs = self.api.get_programs()
+        elif type == 'most_viewed':
+            programs = self.api.get_most_viewed()
         if not programs:
             xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
             self.display_error(30000)
             return
 
-        items = list()
+        items = []
         for program in programs:
             fanart = ''
             if 'program_image' in program:
@@ -63,18 +87,26 @@ class TV4PlayAddon():
             item = xbmcgui.ListItem(program['name'], iconImage=fanart)
             item.setProperty('Fanart_Image', fanart)
             item.setInfo('video', infoLabels)
-            url = self._build_url({'episodes_nid': program['nid'].encode('utf-8')})
-            items.append((url, item, True))
+            if type == 'all':
+                url = self._build_url({'episodes_nid': program['nid'].encode('utf-8')})
+                item.setProperty('IsPlayable', 'false')
+                items.append((url, item, True))
+            elif type == 'most_viewed':
+                url = self._build_url({'play_video': program['id']})
+                item.setProperty('IsPlayable', 'true')
+                items.append((url, item, False))
 
         xbmcplugin.addDirectoryItems(HANDLE, items)
         xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
         xbmcplugin.endOfDirectory(HANDLE)
 
-    def list_episodes(self, program_nid):
+    def list_program_episodes(self, program_nid):
         xbmcplugin.setContent(HANDLE, 'episodes')
-        items = []
         episodes = self.api.get_episodes(program_nid)
+        return self.list_episodes(episodes)
 
+    def list_episodes(self, episodes):
+        items = []
         for episode in episodes:
             fanart = episode['image']
 
@@ -115,7 +147,6 @@ class TV4PlayAddon():
             if videodata['subtitleurl'] != "":
                 xbmc.log('setting_subtitles: {0}'.format(videodata['subtitleurl']))
                 player.setSubtitles(videodata['subtitleurl'])
-
                 xbmc.log('subtitle-stream: {0}'.format(player.getAvailableSubtitleStreams()))
 
         except tv4PlayApiException as code:
@@ -131,6 +162,17 @@ class TV4PlayAddon():
                 self.display_error(30009)
             else:
                 self.display_error('{0}'.format(code))
+
+    def search_programs(self):
+        episodes = []
+        kb = xbmc.Keyboard('',ADDON.getLocalizedString(30012))
+        kb.doModal()
+        if (kb.isConfirmed()):
+            episodes = self.api.search(kb.getText())
+        else:
+            self.show_menu()
+
+        return self.list_episodes(episodes)
 
 if __name__ == '__main__':
     ADDON = xbmcaddon.Addon()
@@ -150,9 +192,13 @@ if __name__ == '__main__':
         if 'play_video' in PARAMS:
             tv4playAddon.play_video(PARAMS['play_video'][0])
         elif 'episodes_nid' in PARAMS:
-            tv4playAddon.list_episodes(PARAMS['episodes_nid'][0])
+            tv4playAddon.list_program_episodes(PARAMS['episodes_nid'][0])
+        elif 'list_programs' in PARAMS:
+            tv4playAddon.list_programs(PARAMS['list_programs'][0])
+        elif 'search_program' in PARAMS:
+            tv4playAddon.search_programs()
         else:
-            tv4playAddon.list_programs()
+            tv4playAddon.show_menu()
 
     except Exception as ex:
         tv4playAddon.display_error(str(ex))

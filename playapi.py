@@ -44,12 +44,12 @@ class tv4PlayApi():
     PROGRAMS = 'http://webapi.tv4play.se/play/programs?is_active=true&per_page=550&fl=name,nid,program_image,description,category&start=0'
     EPISODES_BASEURL = 'http://webapi.tv4play.se/play/video_assets?sort_order=desc&start=0&'
     VIDEO_BASEURL = 'http://prima.tv4play.se/api/web/asset/{0}/play'
+    MOST_VIEWEDURL = 'http://webapi.tv4play.se/play/video_assets/most_viewed?type=episode&platform=web&is_live=false&per_page=32&start=0'
 
     def __init__(self):
         xbmc.log('Starting tv4PlayApi')
 
     def get_jsondata(self, url):
-
         content = self.http_request(url)
         if content is not None and content != '':
             try:
@@ -75,13 +75,11 @@ class tv4PlayApi():
         programs = self.get_jsondata(tv4PlayApi.PROGRAMS)
         if programs['total_hits'] == '0':
             return []
-
         return programs['results']
 
     def get_episodes(self, program):
         program_url = tv4PlayApi.EPISODES_BASEURL + urllib.urlencode({'type': 'episode','q': program})
         data = self.get_jsondata(program_url)
-
         return data['results']
 
     def get_videodata(self, vid):
@@ -134,7 +132,6 @@ class tv4PlayApi():
             raise tv4PlayApiException(msg)
 
         subtitleurl = self.get_media_format_url(data, 'smi')
-
         return {'videourl' : videourl, 'subtitleurl' : subtitleurl}
 
     def get_media_format_url(self, data, field):
@@ -145,11 +142,26 @@ class tv4PlayApi():
             if i.find('mediaFormat').text == field:
                 url = i.find('url').text
                 return url
-
         return ''
 
     def get_start_time(self):
         return self.live_broadcast_time
+
+    def get_most_viewed(self):
+        programs = self.get_jsondata(tv4PlayApi.MOST_VIEWEDURL)
+        most_viewed = []
+        for prog in programs['results']:
+            # Append only 'program' section for compatibility, but
+            # grab 'title', which is more elaborate
+            prog['program']['name'] = prog['title']
+            prog['program']['id'] = prog['id']
+            most_viewed.append(prog['program'])
+        return most_viewed
+
+    def search(self, search_str):
+        search_url = tv4PlayApi.EPISODES_BASEURL + urllib.urlencode({'type': 'episode','q': search_str})
+        data = self.get_jsondata(search_url)
+        return data['results']
 
 class tv4PlayApiException(Exception):
     pass

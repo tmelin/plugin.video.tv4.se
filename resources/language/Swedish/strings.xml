@@ -2,10 +2,14 @@
 <strings>
     <string id="30000">Hittar inga program</string>
     <string id="30001">Felmeddelande</string>
+
     <string id="30004">Kan endast ses med premium konto</string>
     <string id="30005">Kan inte ses i det land du befinner dig i</string>
     <string id="30006">Kunde inte hitta programmet</string>
     <string id="30007">Kan inte visa DRM skyddat material</string>
     <string id="30008">Programmet är ännu inte publicerat, sänds:</string>
     <string id="30009">Hittade ingen länk att spela upp</string>
+    <string id="30010">Mest sedda</string>
+    <string id="30011">Program A-Ö</string>
+    <string id="30012">Sökning</string>
 </strings>
