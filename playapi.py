@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-#    Tomas Melin 2016
-#    Basic tv4play API implementation.
+#  Tomas Melin 2016
+#  Basic tv4play API implementation.
 #
 #  This Program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -49,8 +49,8 @@ class tv4PlayApi():
     def __init__(self):
         xbmc.log('Starting tv4PlayApi')
 
-    def get_jsondata(self, url):
-        content = self.http_request(url)
+    def _get_jsondata(self, url):
+        content = self._http_request(url)
         if content is not None and content != '':
             try:
                 data = json.loads(content)
@@ -60,7 +60,7 @@ class tv4PlayApi():
         else:
             return []
 
-    def http_request(self, url):
+    def _http_request(self, url):
         xbmc.log('Requesting URL: {0}'.format(url))
         request = urllib2.Request(url, headers={
             'user-agent': tv4PlayApi.USER_AGENT,
@@ -71,21 +71,31 @@ class tv4PlayApi():
         connection.close()
         return content
 
+    def _get_media_format_url(self, data, field):
+        xml = ET.XML(data)
+        ss = xml.find('items')
+        sa = list(ss.iter('item'))
+        for i in sa:
+            if i.find('mediaFormat').text == field:
+                url = i.find('url').text
+                return url
+        return ''
+
     def get_programs(self):
-        programs = self.get_jsondata(tv4PlayApi.PROGRAMS)
+        programs = self._get_jsondata(tv4PlayApi.PROGRAMS)
         if programs['total_hits'] == '0':
             return []
         return programs['results']
 
     def get_episodes(self, program):
         program_url = tv4PlayApi.EPISODES_BASEURL + urllib.urlencode({'type': 'episode','q': program})
-        data = self.get_jsondata(program_url)
+        data = self._get_jsondata(program_url)
         return data['results']
 
     def get_videodata(self, vid):
         url = tv4PlayApi.VIDEO_BASEURL.format(vid)
         try:
-            data = self.http_request(url)
+            data = self._http_request(url)
         except urllib2.HTTPError, e:
             data = e.read()
             xml = ET.XML(data)
@@ -123,31 +133,21 @@ class tv4PlayApi():
 
     def get_videourls(self, vid):
         url = tv4PlayApi.VIDEO_BASEURL.format(vid) + '?' + urllib.urlencode({'protocol': 'hls'})
-        data = self.http_request(url)
+        data = self._http_request(url)
 
-        videourl = self.get_media_format_url(data, self.video_format)
+        videourl = self._get_media_format_url(data, self.video_format)
         if videourl == '':
             msg = "NO_URL_FOUND"
             raise tv4PlayApiException(msg)
 
-        subtitleurl = self.get_media_format_url(data, 'smi')
+        subtitleurl = self._get_media_format_url(data, 'smi')
         return {'videourl' : videourl, 'subtitleurl' : subtitleurl}
-
-    def get_media_format_url(self, data, field):
-        xml = ET.XML(data)
-        ss = xml.find('items')
-        sa = list(ss.iter('item'))
-        for i in sa:
-            if i.find('mediaFormat').text == field:
-                url = i.find('url').text
-                return url
-        return ''
 
     def get_start_time(self):
         return self.live_broadcast_time
 
     def get_most_viewed(self):
-        programs = self.get_jsondata(tv4PlayApi.MOST_VIEWEDURL)
+        programs = self._get_jsondata(tv4PlayApi.MOST_VIEWEDURL)
         most_viewed = []
         for prog in programs['results']:
             # Append only 'program' section for compatibility, but
@@ -159,7 +159,7 @@ class tv4PlayApi():
 
     def search(self, search_str):
         search_url = tv4PlayApi.EPISODES_BASEURL + urllib.urlencode({'type': 'episode','q': search_str})
-        data = self.get_jsondata(search_url)
+        data = self._get_jsondata(search_url)
         return data['results']
 
 class tv4PlayApiException(Exception):
