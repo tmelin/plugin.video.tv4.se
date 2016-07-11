@@ -145,12 +145,12 @@ class TV4PlayAddon():
             videodata = self.api.get_videodata(url)
             player = xbmc.Player()
             item = xbmcgui.ListItem('Video', path=videodata['videourl'])
-            xbmcplugin.setResolvedUrl(HANDLE, True, item)
 
             if videodata['subtitleurl'] != "":
                 xbmc.log('setting_subtitles: {0}'.format(videodata['subtitleurl']))
-                player.setSubtitles(videodata['subtitleurl'])
-                xbmc.log('subtitle-stream: {0}'.format(player.getAvailableSubtitleStreams()))
+                item.setSubtitles([videodata['subtitleurl']])
+
+            xbmcplugin.setResolvedUrl(HANDLE, True, item)
 
         except tv4PlayApiException as code:
             if 'SESSION_NOT_AUTHENTICATED' in code:
