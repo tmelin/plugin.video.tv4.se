@@ -45,6 +45,7 @@ class tv4PlayApi():
     EPISODES_BASEURL = 'http://webapi.tv4play.se/play/video_assets?sort_order=desc&start=0&'
     VIDEO_BASEURL = 'http://prima.tv4play.se/api/web/asset/{0}/play'
     MOST_VIEWEDURL = 'http://webapi.tv4play.se/play/video_assets/most_viewed?type=episode&platform=web&is_live=false&per_page=32&start=0'
+    LIVE_SHOWSURL = 'http://webapi.tv4play.se/play/video_assets?platform=web&is_live=true&per_page=100&sort_order=asc&sort=broadcast_date_time'
 
     def __init__(self):
         xbmc.log('Starting tv4PlayApi')
@@ -81,11 +82,30 @@ class tv4PlayApi():
                 return url
         return ''
 
-    def get_programs(self):
-        programs = self._get_jsondata(tv4PlayApi.PROGRAMS)
-        if programs['total_hits'] == '0':
+    def _get_shows(self, type):
+        if type == 'most_viewed':
+            shows = self._get_jsondata(tv4PlayApi.MOST_VIEWEDURL)
+        elif type == 'live_shows':
+            shows = self._get_jsondata(tv4PlayApi.LIVE_SHOWSURL)
+        showlist = []
+        for show in shows['results']:
+            # Append only 'program' section for compatibility, but
+            # grab 'title', which is more elaborate
+            show['program']['name'] = show['title']
+            show['program']['id'] = show['id']
+            showlist.append(show['program'])
+        return showlist
+
+    def get_program_list(self, type):
+        if type == 'all':
+            programs = self._get_jsondata(tv4PlayApi.PROGRAMS)
+            if programs['total_hits'] == '0':
+                return []
+            return programs['results']
+        elif type == 'most_viewed' or type == 'live_shows':
+            return self._get_shows(type)
+        else:
             return []
-        return programs['results']
 
     def get_episodes(self, program):
         program_url = tv4PlayApi.EPISODES_BASEURL + urllib.urlencode({'type': 'episode','q': program})
@@ -145,17 +165,6 @@ class tv4PlayApi():
 
     def get_start_time(self):
         return self.live_broadcast_time
-
-    def get_most_viewed(self):
-        programs = self._get_jsondata(tv4PlayApi.MOST_VIEWEDURL)
-        most_viewed = []
-        for prog in programs['results']:
-            # Append only 'program' section for compatibility, but
-            # grab 'title', which is more elaborate
-            prog['program']['name'] = prog['title']
-            prog['program']['id'] = prog['id']
-            most_viewed.append(prog['program'])
-        return most_viewed
 
     def search(self, search_str):
         search_url = tv4PlayApi.EPISODES_BASEURL + urllib.urlencode({'type': 'episode','q': search_str})

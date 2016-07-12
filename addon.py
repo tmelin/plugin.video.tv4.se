@@ -59,16 +59,17 @@ class TV4PlayAddon():
         url = self._build_url({'search_program': 'true'})
         items.append((url, item, True))
 
+        item = xbmcgui.ListItem(ADDON.getLocalizedString(30013), iconImage=ICON)
+        item.setProperty('Fanart_Image', FANART)
+        url = self._build_url({'list_programs': 'live_shows'})
+        items.append((url, item, True))
+
         xbmcplugin.addDirectoryItems(HANDLE, items)
-        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
         xbmcplugin.endOfDirectory(HANDLE)
 
     def list_programs(self, type):
         xbmcplugin.setContent(HANDLE, 'movies')
-        if type == 'all':
-            programs = self.api.get_programs()
-        elif type == 'most_viewed':
-            programs = self.api.get_most_viewed()
+        programs = self.api.get_program_list(type)
         if not programs:
             self.display_error(30000)
             return
@@ -90,13 +91,12 @@ class TV4PlayAddon():
                 url = self._build_url({'episodes_nid': program['nid'].encode('utf-8')})
                 item.setProperty('IsPlayable', 'false')
                 items.append((url, item, True))
-            elif type == 'most_viewed':
+            elif type == 'most_viewed' or type == 'live_shows':
                 url = self._build_url({'play_video': program['id']})
                 item.setProperty('IsPlayable', 'true')
                 items.append((url, item, False))
 
         xbmcplugin.addDirectoryItems(HANDLE, items)
-        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
         xbmcplugin.endOfDirectory(HANDLE)
 
     def list_program_episodes(self, program_nid):
@@ -127,9 +127,6 @@ class TV4PlayAddon():
             item.setProperty('IsPlayable', 'true')
             items.append((url, item))
 
-        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_EPISODE)
-        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
-        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.addDirectoryItems(HANDLE, items)
         xbmcplugin.endOfDirectory(HANDLE)
 
